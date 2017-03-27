@@ -1,26 +1,14 @@
 #include "sys.h" 	
-#include "delay.h"	
-#include "led.h"
 #include "includes.h"
-#include "usart.h"
-#include "simulate_usart.h"
-#include "timer.h"
-#include "sdio_sdcard.h"
-#include "ILI93xx.h"
-#include "gps.h"
-#include "can.h"
-#include "exfuns.h"
-#include "ff.h"
-#include "w25qxx.h"  
-#include "gprs_jiankong.h"
+#include "gprs_sh.h"
 
 /////////////////////////UCOSIIхннЯиХжц///////////////////////////////////
 
 //GPSхннЯ
 //иХжцхннЯсеох╪╤
-#define UBLOX_TASK_PRIO       		2 
+#define UBLOX_TASK_PRIO       							2 
 //иХжцхннЯ╤яу╩╢Сп║
-#define UBLOX_STK_SIZE  				512
+#define UBLOX_STK_SIZE  									512
 //хннЯ╤яу╩
 OS_STK UBLOX_TASK_STK[UBLOX_STK_SIZE];
 //хннЯ╨╞йЩ
@@ -28,109 +16,71 @@ void ublox_task(void *pdata);
 
 //╢╚╦пфВйЩ╬щ╩Ях║хннЯ
 //иХжцхннЯсеох╪╤
-#define SENSOR_TASK_PRIO       			3 
+#define SENSOR_TASK_PRIO       							3 
 //иХжцхннЯ╤яу╩╢Сп║
-#define SENSOR_STK_SIZE  					128
+#define SENSOR_STK_SIZE  									128
 //хннЯ╤яу╩
 OS_STK SENSOR_TASK_STK[SENSOR_STK_SIZE];
 //хннЯ╨╞йЩ
 void sensor_task(void *pdata);
 
+//йЩ╬щ╢Ф╢╒хннЯ
+//иХжцхннЯсеох╪╤
+#define DATA_TASK_PRIO       								4 
+//иХжцхннЯ╤яу╩╢Сп║
+#define DATA_STK_SIZE  		    						128
+//хннЯ╤яу╩	
+OS_STK DATA_TASK_STK[DATA_STK_SIZE];
+//хннЯ╨╞йЩ
+void data_save_task(void *pdata);
+
+//╤т╥╫ф╫л╗ м╗пехннЯ
+//иХжцхннЯсеох╪╤
+#define OTHER_PLATFORM_TASK_PRIO       			5 
+//иХжцхннЯ╤яу╩╢Сп║
+#define OTHER_PLATFORM_STK_SIZE  					512
+//хннЯ╤яу╩
+OS_STK OTHER_PLATFORM_TASK_STK[OTHER_PLATFORM_STK_SIZE];
+//хннЯ╨╞йЩ
+void other_platform_task(void *pdata);
+
+//Ё╣╪яф╫л╗ м╗пехннЯ
+//иХжцхннЯсеох╪╤
+#define CJET_PLATFORM_TASK_PRIO       			6 
+//иХжцхннЯ╤яу╩╢Сп║
+#define CJET_PLATFORM_STK_SIZE  					512
+//хннЯ╤яу╩
+OS_STK CJET_TASK_STK[CJET_PLATFORM_STK_SIZE];
+//хннЯ╨╞йЩ
+void cjet_platform_task(void *pdata);
+
 //logйДхКиХжц
 //иХжцхннЯсеох╪╤
-#define LOGREV_TASK_PRIO       			8 
+#define LOGREV_TASK_PRIO       							7 
 //иХжцхннЯ╤яу╩╢Сп║
-#define LOGREV_STK_SIZE  					128
+#define LOGREV_STK_SIZE  									128
 //хннЯ╤яу╩
 OS_STK LOGREV_TASK_STK[LOGREV_STK_SIZE];
 //хннЯ╨╞йЩ
 void logrev_task(void *pdata);
 
-//LED1хннЯ
-//иХжцхннЯсеох╪╤
-#define LED1_TASK_PRIO       			6 
-//иХжцхннЯ╤яу╩╢Сп║
-#define LED1_STK_SIZE  					128
-//хннЯ╤яу╩
-OS_STK LED1_TASK_STK[LED1_STK_SIZE];
-//хннЯ╨╞йЩ
-void led1_task(void *pdata);
-
-//LED0хннЯ
-//иХжцхннЯсеох╪╤
-#define LED0_TASK_PRIO       			7 
-//иХжцхннЯ╤яу╩╢Сп║
-#define LED0_STK_SIZE  		    		128
-//хннЯ╤яу╩	
-OS_STK LED0_TASK_STK[LED0_STK_SIZE];
-//хннЯ╨╞йЩ
-void led0_task(void *pdata);
 
 //START хннЯ
 //иХжцхннЯсеох╪╤
-#define START_TASK_PRIO      			10 //©╙й╪хннЯ╣дсеох╪╤иХжцн╙вН╣м
+#define START_TASK_PRIO      								10 //©╙й╪хннЯ╣дсеох╪╤иХжцн╙вН╣м
 //иХжцхннЯ╤яу╩╢Сп║
-#define START_STK_SIZE  				64
+#define START_STK_SIZE  										64
 //хннЯ╤яу╩	
 OS_STK START_TASK_STK[START_STK_SIZE];
 //хннЯ╨╞йЩ
 void start_task(void *pdata);	
 
-int main(void)
- {
-	u32 res,temp,ret;
-	u32 dtsize,dfsize;
-	 
-	delay_init();	    //ясй╠╨╞йЩЁУй╪╩╞
-  NVIC_Configuration();	 
-	LED_Init();		  	//ЁУй╪╩╞сКLEDа╛╫с╣дс╡╪Ч╫с©з
-	TIM5_Configuration();
-	uart_init(9600);
-	Simulate_Usart();
-	W25QXX_Init();				//ЁУй╪╩╞W25Q64
-	TFTLCD_Init();
-	CAN_Mode_Init(CAN_SJW_1tq,CAN_BS2_8tq,CAN_BS1_9tq,4,CAN_Mode_LoopBack);
-//  while (SD_Init())
-//	{
-//		printf("%d\n",SD_Init());
-//		printf("SD Card Error!");
-//		delay_ms(500);
-//	}		
-//	show_sdcard_info();	//╢Рс║SD©╗оЮ╧ьпео╒
-	exfuns_init();							//н╙fatfsоЮ╧ь╠Да©иЙгКдз╢Ф				 
- 	res=f_mount(fs[1],"1:",1); 				//╧ртьFLASH.
- 	 do
-	{
-		temp++;
- 		res=exf_getfree("1:",&dtsize,&dfsize);//╣ц╣╫FLASHйёсЮхща©╨мвэхща©
-		delay_ms(200);		   
-	}while(res&&temp<20);//а╛пЬ╪Л╡Б20╢н
-	
-	if(res==0X0D)////нд╪Чо╣мЁ╡╩╢Фтз FLASH╢еел,FATнд╪Чо╣мЁ╢МнС,жьпб╦Яй╫╩╞FLASH
-	{
-		printf("Flash Disk Formatting...\n");	//╦Яй╫╩ ╞FLASH
-		res=f_mkfs("1:",1,4096);//╦Яй╫╩╞FLASH,1,ел╥Ш;1,╡╩пХр╙рЩ╣╪гЬ,8╦ЖихгЬн╙1╦Ж╢ь
-		if(res==0)
-		{
-			f_setlabel((const TCHAR *)"1:data");	//иХжцFlash╢еел╣дцШвжн╙ё╨ALIENTEK
-			printf("Flash Disk Format Finish\n");	//╦Яй╫╩╞мЙЁи
-			res=exf_getfree("1:",&dtsize,&dfsize);//жьпб╩Ях║хща©
-		}
-		else 
-		printf("Flash Disk Format Error \n");	//╦Яй╫╩╞й╖╟э
-	}
-	if(0 == res)
-	{
-		printf("Flash Disk:   %d  KB", dfsize);
-		temp=dtsize;
-	}
-	else 
-		printf("Flash Fat Error!\n");	//╦Яй╫╩╞й╖╟э
-  f_unlink("1:log.txt");
-	ret = f_open(data_log,"1:log.txt",FA_CREATE_ALWAYS | FA_WRITE| FA_READ);
+OS_EVENT *Sensor_Box;
+OS_EVENT *Sensor_data;
 
-	Is_Enter_facotry();
-	//Ublox_init();
+int main(void)
+{
+	bsp_init();
 	OSInit();   
  	OSTaskCreate(start_task,(void *)0,(OS_STK *)&START_TASK_STK[START_STK_SIZE-1],START_TASK_PRIO );//╢╢╫╗фПй╪хннЯ
 	OSStart();	  	 
@@ -139,64 +89,88 @@ int main(void)
 //©╙й╪хннЯ
 void start_task(void *pdata)
 {
+	uint8_t err;
   OS_CPU_SR cpu_sr=0;
 	pdata = pdata; 
+	Sensor_Box = OSMboxCreate((void *)0);
+	Sensor_data = OSMutexCreate(0, &err);
   OS_ENTER_CRITICAL();			//╫ЬхКаы╫ГгЬ(нч╥╗╠╩жп╤о╢Р╤о)
   OSTaskCreate(ublox_task,(void *)0,(OS_STK*)&UBLOX_TASK_STK[UBLOX_STK_SIZE-1],UBLOX_TASK_PRIO);
 	OSTaskCreate(sensor_task,(void *)0,(OS_STK*)&SENSOR_TASK_STK[SENSOR_STK_SIZE-1],SENSOR_TASK_PRIO);
 	OSTaskCreate(logrev_task,(void *)0,(OS_STK*)&LOGREV_TASK_STK[LOGREV_STK_SIZE-1],LOGREV_TASK_PRIO);	
- 	OSTaskCreate(led0_task,(void *)0,(OS_STK*)&LED0_TASK_STK[LED0_STK_SIZE-1],LED0_TASK_PRIO);						   
- 	OSTaskCreate(led1_task,(void *)0,(OS_STK*)&LED1_TASK_STK[LED1_STK_SIZE-1],LED1_TASK_PRIO);	
+ 	OSTaskCreate(data_save_task,(void *)0,(OS_STK*)&DATA_TASK_STK[DATA_STK_SIZE-1],DATA_TASK_PRIO);						   
+ 	OSTaskCreate(other_platform_task,(void *)0,(OS_STK*)&OTHER_PLATFORM_TASK_STK[OTHER_PLATFORM_STK_SIZE-1],OTHER_PLATFORM_TASK_PRIO);	
 	OSTaskSuspend(START_TASK_PRIO);	//╧рфПфПй╪хннЯ.
 	OS_EXIT_CRITICAL();				//мкЁЖаы╫ГгЬ(©ирт╠╩жп╤о╢Р╤о)
 }
 
 //UBLOXхннЯ
 void ublox_task(void *pdata)
-{	  
+{
+	uint8_t err;	
 	while(1)
 	{
-		//Ublox_Analasis();
-		delay_ms(100);
+		OSMutexPend(Sensor_data,0,&err);
+		Ublox_Analasis();
+		OSMutexPost(Sensor_data);
+		delay_ms(1000);
 	}
 }
 
-//LED0хннЯ
+//╢╚╦пфВйЩ╬щк╒пбхннЯ
 void sensor_task(void *pdata)
-{	 	
+{
+	uint8_t err;
 	while(1)
 	{
-		//Can_test();
+		OSMutexPend(Sensor_data,0,&err);
+		get_Sensor();
+		OSMutexPost(Sensor_data);
 		delay_ms(900);
 	}
 }
 
 
-//LED1хннЯ
-void led1_task(void *pdata)
+//other_platformхннЯ
+void other_platform_task(void *pdata)
 {	  
 	while(1)
 	{
-	printf("led1\n");
-		LED1=0;
-		delay_ms(300);
-		LED1=1;
-		delay_ms(300);
-	};
+		delay_ms(1000);
+	}
 }
 
-
-//LED0хннЯ
-void led0_task(void *pdata)
-{	 	
+//cjet_platformхннЯ
+void cjet_platform_task(void *pdata)
+{
+	uint8_t signal = 0;
+	u8 err;
 	while(1)
 	{
-		printf("led0\n");
-		LED0=0;
-		delay_ms(80);
-		LED0=1;
-		delay_ms(920);
-	};
+		if(OSMboxPend(Sensor_Box,0,&err))
+		{
+			conn_to_sh_platform(signal);
+		}
+		delay_ms(1000);
+	}
+}
+
+//йЩ╬щ╢Ф╢╒хннЯ
+void data_save_task(void *pdata)
+{
+	uint8_t err;
+	char finish = 0;
+	
+	while(1)
+	{
+		OSMutexPend(Sensor_data,0,&err);
+	  
+		//finish = 1;
+		OSMboxPost(Sensor_Box,&finish);//йЩ╬щ╢Ф╢╒хннЯ,йЩ╬щвЦ╧╩
+		
+		OSMutexPost(Sensor_data);
+		delay_ms(1000);
+	}
 }
 
 void logrev_task(void *pdata)

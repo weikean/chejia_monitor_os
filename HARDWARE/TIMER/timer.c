@@ -3,9 +3,13 @@
 #include "usart.h"
 
 //TIM5
-
+vu8 Timer0_start=0;	//定时器0延时启动计数器
 vu8 Time_fac = 0;
-
+vu8 Time_heart = 0;
+vu8 Time_sh_reg = 0;
+vu8 Time_reg_response = 0;
+u8 shijian=0;
+u8 Times=0;      //延时变量
 /*
 *********************************************************************************************************
 *	函 数 名: TIM1_Configuration
@@ -99,15 +103,21 @@ void TIM5_IRQHandler(void)
 	if (TIM_GetITStatus(TIM5, TIM_IT_Update) != RESET)  //检查TIM5更新中断发生与否
 	{
 		TIM_ClearITPendingBit(TIM5, TIM_IT_Update  );  //清除TIMx更新中断标志 
-//		if(Timer0_start)
-//		Times++;
-//		if(Times > shijian)
-//		{
-//			Timer0_start = 0;
-//			Times = 0;
-//		}
+		if(Timer0_start)
+		Times++;
+		if(Times > shijian)
+		{
+			Timer0_start = 0;
+			Times = 0;
+		}
 		if(Time_fac >= 1)
 			Time_fac++;
+		if(Time_heart >= 1)
+			Time_heart++;
+		if(Time_sh_reg >= 1)
+			Time_sh_reg++;
+		if(Time_reg_response >= 1)
+			Time_reg_response++;
 	}
 }
 
@@ -207,7 +217,7 @@ void NVIC_Configuration(void)
 	NVIC_InitStructure.NVIC_IRQChannel = SDIO_IRQn;			//SDIO中断配置
   NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;	//抢占优先级0 
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;					//子优先级0 
-  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;								//使能外部中断通道
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;							//IRQ通道使能
   NVIC_Init(&NVIC_InitStructure);
 	
   NVIC_InitStructure.NVIC_IRQChannel = TIM1_UP_IRQn;         

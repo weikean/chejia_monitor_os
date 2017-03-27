@@ -189,25 +189,25 @@ void TIM4_Init(u16 arr,u16 psc)
 void UART_DMA_Config(DMA_Channel_TypeDef*DMA_CHx,u32 cpar,u32 cmar)
 {
 	DMA_InitTypeDef DMA_InitStructure;
- 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);	//??DMA??
-  DMA_DeInit(DMA_CHx);   //?DMA???1?????????
-	DMA_InitStructure.DMA_PeripheralBaseAddr = cpar;  //DMA??ADC???
-	DMA_InitStructure.DMA_MemoryBaseAddr = cmar;  //DMA?????
-	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;  //??????,??????????
-	DMA_InitStructure.DMA_BufferSize = 0;  //DMA???DMA?????
-	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;  //?????????
-	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;  //?????????
-	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;  //?????8?
-	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte; //?????8?
-	DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;  //?????????
-	DMA_InitStructure.DMA_Priority = DMA_Priority_Medium; //DMA?? x?????? 
-	DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;  //DMA??x????????????
-	DMA_Init(DMA_CHx, &DMA_InitStructure);  //??DMA_InitStruct?????????DMA???USART1_Tx_DMA_Channel???????	
+ 	RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA1, ENABLE);	
+  DMA_DeInit(DMA_CHx);  
+	DMA_InitStructure.DMA_PeripheralBaseAddr = cpar;  
+	DMA_InitStructure.DMA_MemoryBaseAddr = cmar;  
+	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralDST;  
+	DMA_InitStructure.DMA_BufferSize = 0;  
+	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;  
+	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;  
+	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;  
+	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte; 
+	DMA_InitStructure.DMA_Mode = DMA_Mode_Normal;  
+	DMA_InitStructure.DMA_Priority = DMA_Priority_Medium; 
+	DMA_InitStructure.DMA_M2M = DMA_M2M_Disable;  
+	DMA_Init(DMA_CHx, &DMA_InitStructure);  
 } 
 
 void UART_DMA_Enable(DMA_Channel_TypeDef*DMA_CHx,u8 len)
 {
-	DMA_Cmd(DMA_CHx, DISABLE );  //?? ?????        
-	DMA_SetCurrDataCounter(DMA_CHx,len);//DMA???DMA?????	
-	DMA_Cmd(DMA_CHx, ENABLE);           //??DMA??
+	DMA_Cmd(DMA_CHx, DISABLE );       
+	DMA_SetCurrDataCounter(DMA_CHx,len);
+	DMA_Cmd(DMA_CHx, ENABLE);           
 }

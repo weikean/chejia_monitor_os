@@ -1,173 +1,128 @@
 #include "mc8618.h"
-#include "usart.h"
+#include "usart2.h"
 #include "timer.h"
 #include "delay.h"
 #include <string.h>
 #include "user_config.h"
+#include <stdlib.h>
 
-bool mc8618_signal_lost(void)
-{
-	//+CSQ: 99, 99无天线信号
-	if (GSM_send_cmd((u8*)"AT+CSQ",(u8*)"+CSQ: 99, 99",3))
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+//GSM_send_cmd返回0代表成功
+
+static bool mc8618_signal_lost(void)
+{	//+CSQ: 99, 99无天线信号
+	return (GSM_send_cmd((u8*)"AT+CSQ",(u8*)"+CSQ: 99, 99",5))? false : true;
 }
 
-bool mc8618_ppp_open(void)
+static bool mc8618_ppp_open(void)
 {
-	if (GSM_send_cmd((u8*)"at+zpppopen",(u8*)"+ZPPPOPEN:ESTABLISHED",5))
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	return (GSM_send_cmd((u8*)"at+zpppopen",(u8*)"+ZPPPSTATUS: OPENED",20))? false : true;
 }
 
-bool mc8618_ppp_close(void)
+static bool mc8618_ppp_close(void)
 {
-	if (GSM_send_cmd((u8*)"at+zpppclose",(u8*)"+ZPPPCLOSE:OK",5))
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	return (GSM_send_cmd((u8*)"at+zpppclose",(u8*)"+ZPPPSTATUS: CLOSED",5))? false : true;
 }
 
-bool mc8618_ppp_connected(void)
+static bool mc8618_ppp_connected(void)
 {
-	if (GSM_send_cmd((u8*)"at+zpppstatus",(u8*)"+ZPPPSTATUS:ESTABLISHED",5))
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	return (GSM_send_cmd((u8*)"at+zpppstatus",(u8*)"+ZPPPSTATUS: OPENED",5))? false : true;
 }
 
-bool mc8618_ppp_unconnected(void)
+static bool mc8618_ppp_unconnected(void)
 {
-	if (GSM_send_cmd((u8*)"at+zpppstatus",(u8*)"+ZPPPSTATUS:DISCONNECTED",5))
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	return (GSM_send_cmd((u8*)"at+zpppstatus",(u8*)"+ZPPPSTATUS: CLOSED",5))? false : true;
 }
 
-
-
-bool mc8618_ip_setup(void)
+static bool mc8618_ip_setup(void)
 {
-	char setup_ip[30] = "at+zipsetup=0,";
-	strcat(setup_ip,ip1);
-	if (GSM_send_cmd((u8*)setup_ip,(u8*)"+ZIPSETUP:CONNECTED",5))
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	return (GSM_send_cmd((u8*)"at+zipsetup=0,120.25.56.199,10003",(u8*)"+ZTCPESTABLISHED:0",10))? false : true;
 }
 
-bool mc8618_ip_connected(void)
+static bool mc8618_ip_connected(void)
 {
-	if(GSM_send_cmd((u8*)"at+zipstatus=0",(u8*)"+ZIPSTATUS:ESTABLISHED",5))
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	return (GSM_send_cmd((u8*)"at+zipstatus=0",(u8*)"+ZIPSTATUS: ESTABLISHED",5))? false : true;
 }
 
-bool mc8618_ip_unconnected(void)
+static bool mc8618_ip_unconnected(void)
 {
-	if (GSM_send_cmd((u8*)"at+zipstatus=0",(u8*)"+ZIPSTATUS:DISCONNECTED",5))
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	return (GSM_send_cmd((u8*)"at+zipstatus=0",(u8*)"+ZIPSTATUS: CLOSED",5))? false : true;
+}
+static bool mc8618_ip_close(void)
+{
+	return (GSM_send_cmd((u8*)"at+zipclose=0",(u8*)"+ZTCPCLOSED:0",5))? false : true;
 }
 
-bool mc8618_ip_close(void)
+static bool mc8618_sleep(void)
 {
-	if (GSM_send_cmd((u8*)"at+zipclose=0",(u8*)"+ZIPCLOSE:OK",5))
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	return (GSM_send_cmd((u8*)"AT+ZDORMANT",(u8*)"OK",5))? false : true;
+}
+
+static bool mc8618_active(void)
+{
+	return (GSM_send_cmd((u8*)"AT+ZGOACTIVE",(u8*)"OK",5))? false : true;
+}
+
+static bool mc8618_send_cmd(const char *data)
+{
+	return (GSM_send_cmd((u8*)data,(u8*)"+ZIPSEND:",20))? false : true;
 }
 
 
 void mc8618_power_on(void)
 {
-	while (NULL == (GSM_send_cmd((u8*)"AT+ZIND=8",(u8*)"OK",3))) 
+	while ((GSM_send_cmd((u8*)"AT",(u8*)"OK",3))) 
 	{
-		printf("mc8618 is trying...\r");
-		delay_ms(3000);
+		printf("mc8618 is trying OPEN...\n");
+		//LCD warning
+		delay_ms(2000);
 	}// 检查串口和AT
+	
 	printf("mc8618 is READY now...\n");
 	
-	while (NULL == (GSM_send_cmd((u8*)"AT+ZIND=9",(u8*)"OK",3)))
+	while ((GSM_send_cmd((u8*)"AT+ZIND=1",(u8*)"OK",3)))
 	{
 		printf("sim lost...\n");
-		GPIO_SetBits(GPIOE,GPIO_Pin_4);//输出1，开启蜂鸣器输出
-		delay_ms(1000);
-		GPIO_ResetBits(GPIOE,GPIO_Pin_4);//输出0，关闭蜂鸣器输出
-		delay_ms(1000);
+		//LCD warning
+		delay_ms(2000);
 	}// 检查串口和AT
-	
 	while (mc8618_signal_lost())
 	{
 		printf("antenna signal has lost\n");
-	}
-	
+		delay_ms(2000);
+	}	
 	GSM_send_cmd((u8*)"ATE0",(u8*)"OK",3); //取消回显
 }
 
 void mc8618_power_off(void)
 {
-	while (NULL == (GSM_send_cmd((u8*)"AT+ZPWROFF",(u8*)"OK",3)));
+	while ((GSM_send_cmd((u8*)"AT+ZPWROFF",(u8*)"OK",3)));
 }
 
-void mc8618_conn(void)
+bool mc8618_conn(void)
 {
-	do
+while(1)
+{
+	if (!(mc8618_signal_lost()))
 	{
-		if ((mc8618_ppp_unconnected()))
-		{
-			mc8618_ppp_open();
-		}
-		else if (mc8618_ppp_connected())
+		if ((mc8618_ppp_connected()))
 		{
 			printf("ppp has open\n");
 			mc8618_ip_setup();
-	    if(mc8618_ip_connected())
+			if (mc8618_ip_connected())
 			{
-				printf("ip ok");
+				printf("ip ok\n");
+				return true;
 			}
 		}
-	}while (NULL == (mc8618_ip_connected()));
+		else
+			mc8618_ppp_open();
+	}
+	else
+	{
+		//signal lost
+		delay_ms(1000);
+	}
+}
 }
 
 void mc8618_close_conn(void)
@@ -179,25 +134,43 @@ void mc8618_close_conn(void)
 	}while (mc8618_ip_connected());
 }
 
-void mc8618_send_data()
+void mc8618_send_data(const char *data, const int len)
 {
-	//恢复物理链路
+	char pData[128];
+	char ack[] = "at+zipsend=0,";
+	char len_s[5];
+	bool ret;
+	
+	strcat(pData,ack);
+	sprintf(len_s,"%d",len);
+	strcat(pData,len_s);
+	strcat(pData,"\r");
+	strcat(pData,data);
+	
+	if (!(mc8618_signal_lost()))
+	{
 	if(mc8618_ip_connected())
 	{
-		while ((mc8618_signal_lost()))
+		if(mc8618_active()) //恢复物理链路
 		{
-			delay_ms(3000);
+				ret =  mc8618_send_cmd(pData);
+			  if(ret == true)
+				{
+					printf("data_send_ok\n");
+				}
+			
+			mc8618_sleep();//进入休眠
+			printf("sleep ok\n");
 		}
-			if (GSM_send_cmd((u8*)"at+zipsend=0,470",(u8*)">",3))
-			{
-				//取数据
-			}
-				//进入休眠
+		else
+			printf("active failed\n");
 	}
 	else
 	{
 		mc8618_conn();
 	}
+	}
+
 }
 
 
@@ -212,11 +185,11 @@ void mc8618_send_data()
 void CLR_Buf2(void)
 {
 	u16 k;
-	for(k=0;k<USART_REC_LEN;k++)      //将缓存内容清零
+	for(k=0;k<USART2_MAX_RECV_LEN	;k++)      //将缓存内容清零
 	{
 		USART2_RX_BUF[k] = 0x00;
 	}
-    First_Int = 0;              //接收字符串的起始存储位置
+    //First_Int = 0;              //接收字符串的起始存储位置
 }
 
 /*******************************************************************************
@@ -228,7 +201,7 @@ void CLR_Buf2(void)
 * 注意   : 
 *******************************************************************************/
 
-u8 Find(char *a)
+u8 Find(const char *a)
 { 
   if(strstr((const char*)USART2_RX_BUF,a)==NULL)
 	    return 1;
@@ -264,11 +237,12 @@ u8 GSM_send_cmd(u8 *cmd,u8 *ack,u8 wait_time)
 	while (Timer0_start&res)                    
 	{
 		if (strstr((const char*)USART2_RX_BUF,(char*)ack)==NULL)
-			 res=0;
+			 res=1;
 		else
 		{
-			 res=1;
+			 res=0;
 		}
 	}
 	return res;
 }
+

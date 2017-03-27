@@ -7,6 +7,9 @@
 extern u8 Times,First_Int,shijian;
 extern vu8 Timer0_start;
 extern vu8 Time_fac;
+extern vu8 Time_heart;
+extern vu8 Time_sh_reg;
+extern vu8 Time_reg_response;
 
 void TIM1_Configuration(void);
 void TIM2_Configuration(void);

@@ -163,6 +163,7 @@ u8 Ublox_Cfg_Rate(u16 measrate,u8 reftime);
 void Gps_Msg_Show(void);
 void Ublox_Analasis(void);
 void Ublox_init(void);
+extern nmea_msg gpsx;
 #endif  
 
  

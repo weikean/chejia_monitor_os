@@ -41,4 +41,17 @@
 ..\obj\gprs_jiankong.o: D:\Keil_v5\ARM\ARMCC\bin\..\include\math.h
 ..\obj\gprs_jiankong.o: ..\HARDWARE\simulate_usart\simulate_usart.h
 ..\obj\gprs_jiankong.o: ..\HARDWARE\TIMER\timer.h
+..\obj\gprs_jiankong.o: ..\HARDWARE\CAN\can.h
+..\obj\gprs_jiankong.o: ..\SYSTEM\usart2\usart2.h
+..\obj\gprs_jiankong.o: ..\HARDWARE\W25QXX\w25qxx.h
+..\obj\gprs_jiankong.o: ..\HARDWARE\LCD\ILI93xx.h
+..\obj\gprs_jiankong.o: ..\HARDWARE\MC8618\mc8618.h
+..\obj\gprs_jiankong.o: ..\HARDWARE\SD\sdio_sdcard.h
+..\obj\gprs_jiankong.o: ..\HARDWARE\GPS\gps.h
+..\obj\gprs_jiankong.o: ..\HARDWARE\FATFS\exfuns\exfuns.h
+..\obj\gprs_jiankong.o: ..\HARDWARE\FATFS\src\ff.h
+..\obj\gprs_jiankong.o: ..\HARDWARE\FATFS\src\integer.h
+..\obj\gprs_jiankong.o: ..\HARDWARE\FATFS\src\ffconf.h
+..\obj\gprs_jiankong.o: ..\HARDWARE\LED\led.h
+..\obj\gprs_jiankong.o: ..\MALLOC\malloc.h
 ..\obj\gprs_jiankong.o: ..\HARDWARE\FLASH\flash.h

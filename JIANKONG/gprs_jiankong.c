@@ -6,6 +6,85 @@
 #include "flash.h"
 extern __IO uint8_t receivedFlag;
 
+monitor_sensor m_sensor;
+monitor_info m_info;
+
+void bsp_init(void)
+{
+	u8 ret;
+	delay_init();	    //ÑÓÊ±º¯Êý³õÊ¼»
+	NVIC_Configuration();	 
+	LED_Init();		  	//³õÊ¼»¯ÓëLEDÁ¬½ÓµÄÓ²¼þ½Ó¿Ú
+	TIM5_Configuration();
+	//mem_init(SRAMIN);		//³õÊ¼»¯ÄÚ²¿ÄÚ´æ³Ø
+	uart_init(9600);
+	uart2_init(9600);
+	Simulate_Usart();
+	W25QXX_Init();				//³õÊ¼»¯W25Q64
+	TFTLCD_Init();
+	mc8618_power_on();
+	Ublox_init();
+	CAN_Mode_Init(CAN_SJW_1tq,CAN_BS2_8tq,CAN_BS1_9tq,4,CAN_Mode_LoopBack);
+	flash_fatfs_init();
+	//sd_fatfs_init();
+  f_unlink("1:log.txt");
+	ret = f_open(data_log,"1:log.txt",FA_CREATE_ALWAYS | FA_WRITE| FA_READ);
+
+	Is_Enter_facotry();
+	
+}
+
+void flash_fatfs_init(void)
+{
+	u32 res,temp;
+	u32 dtsize,dfsize;
+	
+ 	 do
+	{
+		temp++;
+ 		res=exf_getfree("1:",&dtsize,&dfsize);//µÃµ½FLASHÊ£ÓàÈÝÁ¿ºÍ×ÜÈÝÁ¿
+		delay_ms(200);		   
+	}while(res&&temp<20);//Á¬Ðø¼ì²â20´Î
+	
+	if(res==0X0D)////ÎÄ¼þÏµÍ³²»´æÔÚ FLASH´ÅÅÌ,FATÎÄ¼þÏµÍ³´íÎó,ÖØÐÂ¸ñÊ½»¯FLASH
+	{
+		printf("Flash Disk Formatting...\n");	//¸ñÊ½» ¯FLASH
+		res=f_mkfs("1:",1,4096);//¸ñÊ½»¯FLASH,1,ÅÌ·û;1,²»ÐèÒªÒýµ¼Çø,8¸öÉÈÇøÎª1¸ö´Ø
+		if(res==0)
+		{
+			f_setlabel((const TCHAR *)"1:data");	//ÉèÖÃFlash´ÅÅÌµÄÃû×ÖÎª£ºALIENTEK
+			printf("Flash Disk Format Finish\n");	//¸ñÊ½»¯Íê³É
+			res=exf_getfree("1:",&dtsize,&dfsize);//ÖØÐÂ»ñÈ¡ÈÝÁ¿
+		}
+		else 
+		printf("Flash Disk Format Error \n");	//¸ñÊ½»¯Ê§°Ü
+	}
+	if(0 == res)
+	{
+		printf("Flash Disk:   %d  KB", dfsize);
+		temp=dtsize;
+	}
+	else 
+		printf("Flash Fat Error!\n");	//¸ñÊ½»¯Ê§°Ü
+	
+	exfuns_init();							//ÎªfatfsÏà¹Ø±äÁ¿ÉêÇëÄÚ´æ				 
+ 	res=f_mount(fs[1],"1:",1); 				//¹ÒÔØFLASH.
+}
+
+void sd_fatfs_init(void)
+{	
+	while (SD_Init())
+	{
+		printf("%d\n",SD_Init());
+		printf("SD Card Error!");
+		delay_ms(500);
+	}		
+	show_sdcard_info();	//´òÓ¡SD¿¨Ïà¹ØÐÅÏ¢
+	exfuns_init();							//ÎªfatfsÏà¹Ø±äÁ¿ÉêÇëÄÚ´æ				 
+  f_mount(fs[0],"0:",1); 					//¹ÒÔØSD¿¨ 
+
+}
+
 void Is_Enter_facotry(void)
 {
 	Time_fac = 1;
@@ -21,9 +100,15 @@ void Is_Enter_facotry(void)
 	 Time_fac = 0;
 }
 
+void get_device_id(void)
+{
+	STMFLASH_Read(FLASH_SAVE_ID, (u16 * ) m_info.id, ID_LEN);
+	m_info.id[13] = '\0';
+}
+
 /*******************************************************************************
-* º¯ÊýÃû : GSM_gprs_test
-* ÃèÊö   : GPRS¹¤³§Ä£Ê½
+* º¯ÊýÃû : monitor_factory
+* ÃèÊö   : ¼à¿Ø¹¤³§Ä£Ê½,´æÈ¡¼à¿ØµÄ»ù±¾ÐÅÏ¢ ¡£
 
 *******************************************************************************/
 u8 monitor_factory(void) 
@@ -42,13 +127,6 @@ char fac_len = 0;
 
  
 printf("@@@@@@@@@@@@@@ÄúÒÑ½øÈë¹¤³§Ä£Ê½@@@@@@@@@@@@@@@@@@@@@\r\n");
-//printf("³µ¼Ñ125.89.18.79,12345»Ø³µ\r\n");
-//printf("ºÓÄÏ125.89.18.79,12345»Ø³µ\r\n");
-//printf("Éè±¸ºÅ239828378927»Ø³µ\r\n");
-//printf("ÊÖ»úºÅ18576422291»Ø³µ\r\n");    
-//printf("³§¼Ò±àÂë+cj01+»Ø³µ\r\n");    
-//printf("ÍË³ö¹¤³§Ä£Ê½£ºÍË³ö+»Ø³µ\r\n"); 
-
 printf("³µ¼Ñat+zipsetup=0,202.2.1.0,5000\r\n");
 printf("ºÓÄÏ125.89.18.79,12345»Ø³µ\r\n");
 printf("Éè±¸ºÅ239828378927»Ø³µ\r\n");
@@ -257,7 +335,7 @@ bool isValidPhone(const char *phone)
 	{
 		if (phone[i] >= '0' && phone[i] <= '9')
 			return true;
-		else
+	else
 			return false;
 	}
 	return false;
@@ -286,3 +364,20 @@ int pick_up_fac(const char* facinfo , char *fac)
 	return strlen(fac);
 }
 
+/*
+*´«¸ÐÆ÷Êý¾Ý²É¼¯
+*/
+void get_Sensor(void)
+{
+	monitor_sensor *m_sensor_temp;
+	
+	Can_Receive_Msg((u8*)m_sensor_temp);
+	
+	m_sensor.front_temperature = m_sensor_temp->front_temperature;
+	m_sensor.middle_temperature = m_sensor_temp->middle_temperature;
+	m_sensor.back_temperatue = m_sensor_temp->back_temperatue;
+	m_sensor.front_pressure = m_sensor_temp->front_pressure;
+	m_sensor.middle_pressure = m_sensor_temp->middle_pressure;
+	m_sensor.back_pressure = m_sensor_temp->back_pressure;
+	
+}
